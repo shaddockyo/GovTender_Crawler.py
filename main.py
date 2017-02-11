@@ -8,7 +8,7 @@ print("查詢日期:" + today)
 
 # 擷取網頁資料pe
 url = 'http://web.pcc.gov.tw/prkms/prms-viewTenderStatClient.do?ds={0}&root=tps'
-url = url.format('20170210')
+url = url.format(today)
 RawData = requests.get(url)
 RawDataToDom = BeautifulSoup(RawData.text, "lxml")
 
