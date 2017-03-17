@@ -43,6 +43,8 @@ limit_case = Caselist[OpenNum + OpenModify: OpenNum + OpenModify + LimitNum]
 # 設定關鍵字
 keyword = ["資訊", "監控", "管理系 統", "地理資訊", "GIS", "行動", "雲端"]
 
+final_result=[]
+
 # 文字處理-去除不必要的文字
 for index in range(len(limit_case)):
     limit_case[index] = limit_case[index].replace(
@@ -54,6 +56,28 @@ for index in range(len(limit_case)):
     # 關鍵字篩選
     for i in range(len(keyword)):
         if(keyword[i] in LimitCase[index]):
-            print(LimitCase[index])
+            if (limit_case[index] not in final_result):
+                final_result.append(limit_case[index])
+                
+#製作HRML內容
+html_content = "<html><head></head><body>"
+html_content += "查詢日期:" + today+"<br>"
+html_content += "關鍵字: "
+
+#加入關鍵字
+for i in range(len(keyword)):
+    if(i==len(keyword)-1):
+        html_content += keyword[i]
+    else:
+        html_content += keyword[i]+"、"
+html_content += "<br>"
+
+#加入最終篩選結果
+for index in range(len(final_result)):
+    html_content += str(final_result[index])+"<br>"
+
+html_content += "</body></htrml>"
+
+print(html_content)
 
 # http://web.pcc.gov.tw/prkms/prms-viewTenderDetailClient.do?ds=20170210&fn=TIQ-3-51874692.xml
