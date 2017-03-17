@@ -78,6 +78,49 @@ for index in range(len(final_result)):
 
 html_content += "</body></htrml>"
 
-print(html_content)
+#print(html_content)
 
 # http://web.pcc.gov.tw/prkms/prms-viewTenderDetailClient.do?ds=20170210&fn=TIQ-3-51874692.xml
+
+# 輸入gmail信箱的資訊
+host = "smtp.gmail.com"
+port = 587
+username = "sandrahuang.yo@gmail.com"
+password = "snvyhgaeletblqco"
+from_email = username
+to_list = ["sandra@mail.pstcom.com.tw"]
+ 
+# 建立SMTP連線
+email_conn = smtplib.SMTP(host,port)
+# 跟Gmail Server溝通
+email_conn.ehlo()
+# TTLS安全認證機制
+email_conn.starttls()
+
+try:
+    #登入
+    email_conn.login(username,password)
+    
+    # Create message container - the correct MIME type is multipart/alternative.
+    #網際網路郵件擴展（MIME，Multipurpose Internet Mail Extensions）是一個網際網路標準，它擴展了電子郵件標準，使其能夠支援聲音，圖像，文字。
+    #使用MIMEText有三個參數可以傳入，第一個參數為郵件正文(可以是純文字，或是HTML格式)，第二個參數告訴MIME是要用純文字解析還是HTML格式解析，第三個編碼保證多語言兼容性
+    mail_info = MIMEMultipart("alternative")
+    
+    # 郵件內容
+    mail_info['Subject'] = "每日查詢結果" #主旨
+    mail_info["From"] = from_email #寄件者
+    mail_info["To"] = to_list[0] #收件者
+    html_content = MIMEText(html_content, 'html', 'utf-8')    
+    mail_info.attach(html_content)
+    
+    #寄信
+    email_conn.sendmail(from_email, to_list, mail_info.as_string())
+    
+except SMTPAuthenticationError:
+    print("Could not login")
+    
+except:
+    print("an error occured!")
+
+# 關閉連線
+email_conn.quit()
