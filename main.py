@@ -88,7 +88,7 @@ port = 587
 username = "your email"
 password = "your password"
 from_email = username
-to_list = ["sandra@mail.pstcom.com.tw"]
+to_list = ["receiver email"]
  
 # 建立SMTP連線
 email_conn = smtplib.SMTP(host,port)
