@@ -85,8 +85,8 @@ html_content += "</body></htrml>"
 # 輸入gmail信箱的資訊
 host = "smtp.gmail.com"
 port = 587
-username = "sandrahuang.yo@gmail.com"
-password = "snvyhgaeletblqco"
+username = "your email"
+password = "your password"
 from_email = username
 to_list = ["sandra@mail.pstcom.com.tw"]
  
