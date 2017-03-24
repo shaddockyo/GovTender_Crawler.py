@@ -1,10 +1,13 @@
 from bs4 import BeautifulSoup
 import datetime
 import requests
+import smtplib 
+from smtplib import SMTP, SMTPAuthenticationError, SMTPException
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # 取得今天日期
 today = datetime.date.today().strftime('%Y%m%d')
-print("查詢日期:" + today)
 
 # 擷取網頁資料Get
 url = 'http://web.pcc.gov.tw/prkms/prms-viewTenderStatClient.do?ds={0}&root=tps'
@@ -16,7 +19,6 @@ RawDataToDom = BeautifulSoup(RawData.text, "lxml")
 Caselist = []
 for tenderCase in RawDataToDom.select('.tenderCase'):
     Case = str(tenderCase.select('.tenderLink')[0])
-    # Caselist.insert(len(Caselist)+1,Case)
     Caselist.append(Case)
 
 # list comprehension
@@ -35,7 +37,6 @@ for index in range(len(NumRawData)):
         OpenModify = int(Txt[12:])
     if(index == 5):
         LimitNum = int(Txt[11:])
-        print("限制性招標公告總筆數:" + str(LimitNum))
 
 # 取出限制性招標標案
 limit_case = Caselist[OpenNum + OpenModify: OpenNum + OpenModify + LimitNum]
@@ -43,49 +44,66 @@ limit_case = Caselist[OpenNum + OpenModify: OpenNum + OpenModify + LimitNum]
 # 設定關鍵字
 keyword = ["資訊", "監控", "管理系 統", "地理資訊", "GIS", "行動", "雲端"]
 
-final_result=[]
+final_result=[] #限制性招標篩選結果list
+tender_num_list=[] #標案編號(網址參數)
+tender_unit_list=[] #標案機構名稱
+tender_name_list=[] #標案名稱
 
 # 文字處理-去除不必要的文字
 for index in range(len(limit_case)):
     limit_case[index] = limit_case[index].replace(
         "<a class=\"tenderLink\" href=\"", "")
     limit_case[index] = limit_case[index].replace("</a>", "")
-    limit_case[index] = limit_case[index].replace("\">&lt;", ":")
+    limit_case[index] = limit_case[index].replace("\">&lt;", ";")
     limit_case[index] = limit_case[index].replace("&gt;", ":")
 
     # 關鍵字篩選
     for i in range(len(keyword)):
         if(keyword[i] in LimitCase[index]):
             if (limit_case[index] not in final_result):
-                final_result.append(limit_case[index])
-                
+                final_result.append(limit_case[index])           
+#切割資料
+for index in range(len(final_result)):
+    tender_num=final_result[index][:18]
+    tender_num_list.append(tender_num)
+    
+    unit_point_start=final_result[index].find(":")
+    unit_point_end=final_result[index].find("：")
+    tender_unit=final_result[index][unit_point_start+2:unit_point_end]
+    tender_unit_list.append(tender_unit)
+    
+    tender_name=final_result[index][unit_point_end+1:]
+    tender_name_list.append(tender_name)
+    
 #製作HRML內容
-html_content = "<html><head></head><body>"
-html_content += "查詢日期:" + today+"<br>"
-html_content += "關鍵字: "
+html_content ="<html><head><style type=\"text/css\"> body{ font-family:微軟正黑體; } table{ border-collapse: collapse;} tr:nth-child(even){background-color: #f2f2f2} th, td{ text-align: left; padding: 10px;} th {  background-color: #008B8B; color: white; }</style></head><body> "
+html_content += "<h2>政府電子採購網-限制性招標公告-查詢結果</h2>"
+html_content += "<p>查詢日期: " + str(datetime.date.today())+"</p>"
+html_content += "<p>查詢關鍵字: "
 
 #加入關鍵字
 for i in range(len(keyword)):
     if(i==len(keyword)-1):
-        html_content += keyword[i]
+        html_content += keyword[i]+"</p>"
     else:
         html_content += keyword[i]+"、"
-html_content += "<br>"
 
-#加入最終篩選結果
+#表格內容
+html_content += "<table>  <tr>  <th>序號</th>  <th>機關名稱</th>  <th>標案名稱</th>  </tr>"
 for index in range(len(final_result)):
-    html_content += str(final_result[index])+"<br>"
-
-html_content += "</body></htrml>"
+    no=index+1
+    html_content += "  <tr>  <td>"+str(no)+"</td>"
+    html_content += "  <td>"+str(tender_unit_list[index])+"</td>"
+    html_content += "  <td> <a title=\"開啟連結查看詳細資訊\" href=\"http://web.pcc.gov.tw/prkms/prms-viewTenderDetailClient.do?ds="+today+"0&fn="+str(tender_num_list[index])+"\">"+str(tender_name_list[index])+"</a></td>  </tr>"
+html_content += "</table></body></htrml>"
 
 #print(html_content)
-
 # http://web.pcc.gov.tw/prkms/prms-viewTenderDetailClient.do?ds=20170210&fn=TIQ-3-51874692.xml
 
 # 輸入gmail信箱的資訊
 host = "smtp.gmail.com"
 port = 587
-username = "your email"
+username = "your gmail email"
 password = "your password"
 from_email = username
 to_list = ["receiver email"]
@@ -107,7 +125,7 @@ try:
     mail_info = MIMEMultipart("alternative")
     
     # 郵件內容
-    mail_info['Subject'] = "每日查詢結果" #主旨
+    mail_info['Subject'] = "政府電子採購網-限制性招標公告-"+today+"查詢結果" #主旨
     mail_info["From"] = from_email #寄件者
     mail_info["To"] = to_list[0] #收件者
     html_content = MIMEText(html_content, 'html', 'utf-8')    
@@ -120,7 +138,7 @@ except SMTPAuthenticationError:
     print("Could not login")
     
 except:
-    print("an error occured!")
+    print("An error occured!")
 
 # 關閉連線
 email_conn.quit()
