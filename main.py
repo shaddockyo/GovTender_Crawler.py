@@ -12,42 +12,42 @@ today = datetime.date.today().strftime('%Y%m%d')
 # 擷取網頁資料Get
 url = 'http://web.pcc.gov.tw/prkms/prms-viewTenderStatClient.do?ds={0}&root=tps'
 url = url.format(today)
-RawData = requests.get(url)
-RawDataToDom = BeautifulSoup(RawData.text, "lxml")
+rawdata = requests.get(url)
+rawdata_to_dom = BeautifulSoup(rawdata.text, "lxml")
 
 # 將全部標案儲存於List
-Caselist = []
-for tenderCase in RawDataToDom.select('.tenderCase'):
-    Case = str(tenderCase.select('.tenderLink')[0])
-    Caselist.append(Case)
+case_list = []
+for tendercase in rawdata_to_dom.select('.tenderCase'):
+    case = str(tendercase.select('.tenderLink')[0])
+    case_list.append(case)
 
 # list comprehension
 # CaseList = [str(case.select('.tenderLink')[0]) for case in RawDataToDom.select('.tenderCase')]
 
 # 取得各類標案數量
-NumRawData = RawDataToDom.select('h3')
-OpenNum = 0
-OpenModify = 0
-LimitNum = 0
-for index in range(len(NumRawData)):
-    Txt = str(NumRawData[index].text)
+rawdata_num = rawdata_to_dom.select('h3')
+opentender_num = 0
+opentender_modify = 0
+limit_num = 0
+for index in range(len(rawdata_num)):
+    txt = str(rawdata_num[index].text)
     if(index == 1):
-        OpenNum = int(Txt[10:])
+        opentender_num = int(txt[10:])
     if(index == 3):
-        OpenModify = int(Txt[12:])
+        opentender_modify = int(txt[12:])
     if(index == 5):
-        LimitNum = int(Txt[11:])
+        limit_num = int(txt[11:])
 
 # 取出限制性招標標案
-limit_case = Caselist[OpenNum + OpenModify: OpenNum + OpenModify + LimitNum]
+limit_case = case_list[opentender_num + opentender_modify: opentender_num + opentender_modify + limit_num]
 
 # 設定關鍵字
 keyword = ["資訊", "監控", "管理系 統", "地理資訊", "GIS", "行動", "雲端"]
 
-final_result=[] #限制性招標篩選結果list
-tender_num_list=[] #標案編號(網址參數)
-tender_unit_list=[] #標案機構名稱
-tender_name_list=[] #標案名稱
+final_result = [] #限制性招標篩選結果list
+tender_num_list = [] #標案編號(網址參數)
+tender_unit_list  =[] #標案機構名稱
+tender_name_list = [] #標案名稱
 
 # 文字處理-去除不必要的文字
 for index in range(len(limit_case)):
@@ -59,24 +59,24 @@ for index in range(len(limit_case)):
 
     # 關鍵字篩選
     for i in range(len(keyword)):
-        if(keyword[i] in LimitCase[index]):
+        if(keyword[i] in limit_case[index]):
             if (limit_case[index] not in final_result):
                 final_result.append(limit_case[index])           
 #切割資料
 for index in range(len(final_result)):
-    tender_num=final_result[index][:18]
+    tender_num = final_result[index][:18]
     tender_num_list.append(tender_num)
     
-    unit_point_start=final_result[index].find(":")
-    unit_point_end=final_result[index].find("：")
-    tender_unit=final_result[index][unit_point_start+2:unit_point_end]
+    unit_point_start = final_result[index].find(":")
+    unit_point_end = final_result[index].find("：")
+    tender_unit = final_result[index][unit_point_start+2:unit_point_end]
     tender_unit_list.append(tender_unit)
     
-    tender_name=final_result[index][unit_point_end+1:]
+    tender_name = final_result[index][unit_point_end+1:]
     tender_name_list.append(tender_name)
     
 #製作HRML內容
-html_content ="<html><head><style type=\"text/css\"> body{ font-family:微軟正黑體; } table{ border-collapse: collapse;} tr:nth-child(even){background-color: #f2f2f2} th, td{ text-align: left; padding: 10px;} th {  background-color: #008B8B; color: white; }</style></head><body> "
+html_content = "<html><head><style type=\"text/css\"> body{ font-family:微軟正黑體; } table{ border-collapse: collapse;} tr:nth-child(even){background-color: #f2f2f2} th, td{ text-align: left; padding: 10px;} th {  background-color: #008B8B; color: white; }</style></head><body> "
 html_content += "<h2>政府電子採購網-限制性招標公告-查詢結果</h2>"
 html_content += "<p>查詢日期: " + str(datetime.date.today())+"</p>"
 html_content += "<p>查詢關鍵字: "
