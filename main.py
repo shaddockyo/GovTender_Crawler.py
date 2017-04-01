@@ -1,12 +1,10 @@
 # coding=UTF-8
 import datetime
 import requests
-import smtplib
-from smtplib import SMTP, SMTPAuthenticationError, SMTPException
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import configparser
 from bs4 import BeautifulSoup
+from mail import send_mail
+
 
 # 將config讀進str，避開中文編碼問題
 cfg_str = ''
@@ -95,7 +93,7 @@ for index in range(len(final_result)):
     tender_name = final_result[index][unit_point_end+1:]
     tender_name_list.append(tender_name)
 
-# 製作HRML內容
+# 製作HTML內容
 html_content = "<html><head><style type=\"text/css\"> body{ font-family:微軟正黑體; } table{ border-collapse: collapse;} tr:nth-child(even){background-color: #f2f2f2} th, td{ text-align: left; padding: 10px;} th {  background-color: #008B8B; color: white; }</style></head><body> "
 html_content += "<h2>政府電子採購網-限制性招標公告-查詢結果</h2>"
 html_content += "<p>查詢日期: " + str(datetime.date.today())+"</p>"
@@ -117,42 +115,5 @@ for index in range(len(final_result)):
     html_content += "  <td> <a title=\"開啟連結查看詳細資訊\" href=\"" + url + "?ds="+dt+"0&fn="+str(tender_num_list[index])+"\">"+str(tender_name_list[index])+"</a></td>  </tr>"
 html_content += "</table></body></htrml>"
 
-# 輸入gmail信箱的資訊
-host = config['Mail']['Host']
-port = config['Mail']['Port']
-username = config['Mail']['Username']
-password = config['Mail']['Password']
-from_email = config['Mail']['FromEmail']
-to_list = [mail for mail in config['Mail']['ToList'].split(',')]
-# 建立SMTP連線
-email_conn = smtplib.SMTP(host, port)
-# 跟Gmail Server溝通
-email_conn.ehlo()
-# TTLS安全認證機制
-email_conn.starttls()
-
-try:
-    # 登入
-    email_conn.login(username, password)
-
-    # Create message container - the correct MIME type is multipart/alternative.
-    # 網際網路郵件擴展（MIME，Multipurpose Internet Mail Extensions）是一個網際網路標準，它擴展了電子郵件標準，使其能夠支援聲音，圖像，文字。
-    # 使用MIMEText有三個參數可以傳入，第一個參數為郵件正文(可以是純文字，或是HTML格式)，第二個參數告訴MIME是要用純文字解析還是HTML格式解析，第三個編碼保證多語言兼容性
-    mail_info = MIMEMultipart("alternative")
-
-    # 郵件內容
-    mail_info['Subject'] = "政府電子採購網-限制性招標公告-"+dt+"查詢結果"  # 主旨
-    mail_info["From"] = from_email  # 寄件者
-    mail_info["To"] = to_list[0]  # 收件者
-    html_content = MIMEText(html_content, 'html', 'utf-8')
-    mail_info.attach(html_content)
-
-    # 寄信
-    email_conn.sendmail(from_email, to_list, mail_info.as_string())
-
-except SMTPAuthenticationError:
-    print("Could not login")
-
-# 關閉連線
-email_conn.quit()
-print('finish~')
+send_mail(config['Mail'], dt, html_content)
+print('政府電子採購網-限制性招標公告{0}查詢結果已寄出!'.format(dt))
