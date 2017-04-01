@@ -1,17 +1,31 @@
+# coding=UTF-8
 import datetime
 import requests
 import smtplib
 from smtplib import SMTP, SMTPAuthenticationError, SMTPException
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import configparser
 from bs4 import BeautifulSoup
 
-# 取得今天日期
-today = datetime.date.today().strftime('%Y%m%d')
+# 將config讀進str，避開中文編碼問題
+cfg_str = ''
+with open('config.ini', 'r', encoding='utf-8') as cfg_file:
+    for cfg in cfg_file:
+        cfg_str += cfg
+
+config = configparser.ConfigParser()
+config.read_string(cfg_str)
+
+# 取得日期
+dt_cfg = config['Basic']['Date']
+dt = dt_cfg if dt_cfg != 'today' else datetime.date.today().strftime('%Y%m%d')
+
+url = config['Basic']['URL']
 
 # 擷取網頁資料Get
-url = 'http://web.pcc.gov.tw/prkms/prms-viewTenderStatClient.do?ds={0}&root=tps'
-url = url.format('20170324')
+url = url + '?ds={0}&root=tps'
+url = url.format(dt)
 raw_data = requests.get(url)
 raw_data_to_dom = BeautifulSoup(raw_data.text, "lxml")
 
@@ -48,7 +62,7 @@ for index in range(len(rawdata_num)):
 limit_case = case_list[open_num + open_modify: open_num + open_modify + limit_num]
 
 # 設定關鍵字
-keyword = ["資訊", "監控", "管理系統", "地理資訊", "GIS", "行動", "雲端"]
+keyword = [x for x in config['Basic']['Keyword'].split(',')]
 
 final_result = []  # 限制性招標篩選結果list
 tender_num_list = []  # 標案編號(網址參數)
@@ -100,17 +114,16 @@ for index in range(len(final_result)):
     no = index+1
     html_content += "  <tr>  <td>"+str(no)+"</td>"
     html_content += "  <td>"+str(tender_unit_list[index])+"</td>"
-    html_content += "  <td> <a title=\"開啟連結查看詳細資訊\" href=\"http://web.pcc.gov.tw/prkms/prms-viewTenderDetailClient.do?ds="+today+"0&fn="+str(tender_num_list[index])+"\">"+str(tender_name_list[index])+"</a></td>  </tr>"
+    html_content += "  <td> <a title=\"開啟連結查看詳細資訊\" href=\"" + url + "?ds="+dt+"0&fn="+str(tender_num_list[index])+"\">"+str(tender_name_list[index])+"</a></td>  </tr>"
 html_content += "</table></body></htrml>"
 
 # 輸入gmail信箱的資訊
-host = "smtp.gmail.com"
-port = 587
-username = "sandrahuang.yo@gmail.com"
-password = "snvyhgaeletblqco"
-from_email = username
-to_list = ['qiubite31@gmail.com']
-
+host = config['Mail']['Host']
+port = config['Mail']['Port']
+username = config['Mail']['Username']
+password = config['Mail']['Password']
+from_email = config['Mail']['FromEmail']
+to_list = [mail for mail in config['Mail']['ToList'].split(',')]
 # 建立SMTP連線
 email_conn = smtplib.SMTP(host, port)
 # 跟Gmail Server溝通
@@ -128,7 +141,7 @@ try:
     mail_info = MIMEMultipart("alternative")
 
     # 郵件內容
-    mail_info['Subject'] = "政府電子採購網-限制性招標公告-"+today+"查詢結果"  # 主旨
+    mail_info['Subject'] = "政府電子採購網-限制性招標公告-"+dt+"查詢結果"  # 主旨
     mail_info["From"] = from_email  # 寄件者
     mail_info["To"] = to_list[0]  # 收件者
     html_content = MIMEText(html_content, 'html', 'utf-8')
@@ -139,8 +152,7 @@ try:
 
 except SMTPAuthenticationError:
     print("Could not login")
-except:
-    print("An error occured!")
 
 # 關閉連線
 email_conn.quit()
+print('finish~')
