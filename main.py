@@ -3,6 +3,7 @@ import datetime
 import requests
 import configparser
 from bs4 import BeautifulSoup
+from jinja2 import Environment, FileSystemLoader
 from mail import send_mail
 
 
@@ -93,27 +94,23 @@ for index in range(len(final_result)):
     tender_name = final_result[index][unit_point_end+1:]
     tender_name_list.append(tender_name)
 
-# 製作HTML內容
-html_content = "<html><head><style type=\"text/css\"> body{ font-family:微軟正黑體; } table{ border-collapse: collapse;} tr:nth-child(even){background-color: #f2f2f2} th, td{ text-align: left; padding: 10px;} th {  background-color: #008B8B; color: white; }</style></head><body> "
-html_content += "<h2>政府電子採購網-限制性招標公告-查詢結果</h2>"
-html_content += "<p>查詢日期: " + str(datetime.date.today())+"</p>"
-html_content += "<p>查詢關鍵字: "
-
-# 加入關鍵字
-for i in range(len(keyword)):
-    if(i == len(keyword)-1):
-        html_content += keyword[i]+"</p>"
-    else:
-        html_content += keyword[i]+"、"
-
-# 表格內容
-html_content += "<table>  <tr>  <th>序號</th>  <th>機關名稱</th>  <th>標案名稱</th>  </tr>"
+# 將標案資料建立成dict合併為list
+cases = []
 for index in range(len(final_result)):
-    no = index+1
-    html_content += "  <tr>  <td>"+str(no)+"</td>"
-    html_content += "  <td>"+str(tender_unit_list[index])+"</td>"
-    html_content += "  <td> <a title=\"開啟連結查看詳細資訊\" href=\"" + url + "?ds="+dt+"0&fn="+str(tender_num_list[index])+"\">"+str(tender_name_list[index])+"</a></td>  </tr>"
-html_content += "</table></body></htrml>"
+    case = {}
+    case['no'] = index+1
+    case['unit'] = tender_unit_list[index]
+    case['name'] = tender_name_list[index]
+    detail_url = '{url}?ds={dt}0&fn={tender_num}'.format(url=url, dt=dt, tender_num=tender_num_list[index])
+    case['url'] = detail_url
+    cases.append(case)
+
+# 使用jinja2 render標案資料
+env = Environment(
+    loader=FileSystemLoader('')
+)
+template = env.get_template('content.html')
+html_content = template.render(dt=dt, keyword=config['Basic']['Keyword'], cases=cases)
 
 send_mail(config['Mail'], dt, html_content)
 print('政府電子採購網-限制性招標公告{0}查詢結果已寄出!'.format(dt))
