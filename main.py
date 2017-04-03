@@ -21,10 +21,8 @@ def main():
     dt_cfg = config['Basic']['Date']
     dt = dt_cfg if dt_cfg != 'today' else datetime.date.today().strftime('%Y%m%d')
 
-    url = config['Basic']['URL']
-
     # 擷取網頁資料Get
-    url = url + '?ds={0}&root=tps'
+    url = 'http://web.pcc.gov.tw/prkms/prms-viewTenderStatClient.do?ds={0}&root=tps'
     url = url.format(dt)
     raw_data = requests.get(url)
     raw_data_to_dom = BeautifulSoup(raw_data.text, "lxml")
@@ -102,7 +100,10 @@ def main():
         case['no'] = index+1
         case['unit'] = tender_unit_list[index]
         case['name'] = tender_name_list[index]
-        detail_url = '{url}?ds={dt}0&fn={tender_num}'.format(url=url, dt=dt, tender_num=tender_num_list[index])
+        detail_url = '{url}?ds={dt}0&fn={tender_num}'.format(
+            url='http://web.pcc.gov.tw/prkms/prms-viewTenderDetailClient.do',
+            dt=dt,
+            tender_num=tender_num_list[index])
         case['url'] = detail_url
         cases.append(case)
 
