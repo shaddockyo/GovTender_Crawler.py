@@ -1,0 +1,40 @@
+<html>
+    <head>
+    <style type="text/css">
+        body {
+            font-family:微軟正黑體;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2
+        }
+        th, td {
+            text-align: left; padding: 10px;
+        }
+        th {
+            background-color: #008B8B; color: white; 
+        }
+    </style>
+    </head>
+    <body>
+        <h2>政府電子採購網-限制性招標公告-查詢結果</h2>
+        <p>查詢日期: {{dt}}</p>
+        <p>查詢關鍵字: {{keyword}}</p>
+        <table>
+            <tr>
+                <th>序號</th>
+                <th>機關名稱</th>
+                <th>標案名稱</th>
+            </tr>
+            {% for case in cases %}
+            <tr>
+                <td>{{ case.no }}</td>
+                <td>{{ case.unit }}</td>
+                <td><a href="{{ case.url }}">{{ case.name }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </body>
+</html>
